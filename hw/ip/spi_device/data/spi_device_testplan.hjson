@@ -380,7 +380,7 @@
       name: 4b_3b_feature
       desc: '''
             - Configure passthrough or flash mode.
-            - Configure cmd info slots.
+            - Configure command info slots.
             - diferent values for 4B/3B.
             - Issue supported command with required address.
             - Check proper address propagation.'''
