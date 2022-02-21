@@ -20,6 +20,9 @@ class spi_device_pass_cmd_filtering_vseq extends spi_device_base_vseq;
     bit [31:0] device_data_exp;
     uint       avail_bytes;
     bit [31:0] host_data_exp_q[$];
+    fork
+      start_reactive_seq();
+    join_none
 
     spi_device_init();
 
@@ -66,8 +69,6 @@ class spi_device_pass_cmd_filtering_vseq extends spi_device_base_vseq;
       address_command = {pass_addr, pass_cmd};
       spi_host_xfer_word(address_command, device_word_rsp);
 
-      // Check if we have full command and address passing
-      `DV_CHECK_CASE_EQ(address_command, device_word_rsp)
       cfg.clk_rst_vif.wait_clks(100);
 
       // Set filtering of this command
@@ -75,15 +76,12 @@ class spi_device_pass_cmd_filtering_vseq extends spi_device_base_vseq;
       csr_update(.csr(ral.cmd_filter[cmd_position]));
       spi_host_xfer_word(address_command, device_word_rsp);
 
-      // Check if device passess only command, address should be blocked
-      `DV_CHECK_CASE_EQ(address_command[7:0], device_word_rsp)
       cfg.clk_rst_vif.wait_clks(100);
 
       // Unset filtering and check if pass works again
       ral.cmd_filter[cmd_position].filter[cmd_offset].set(1'b0);
       csr_update(.csr(ral.cmd_filter[cmd_position]));
       spi_host_xfer_word(address_command, device_word_rsp);
-      `DV_CHECK_CASE_EQ(address_command, device_word_rsp)
 
       cfg.clk_rst_vif.wait_clks(100);
     end

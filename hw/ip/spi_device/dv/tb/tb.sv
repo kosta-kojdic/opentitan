@@ -92,9 +92,14 @@ module tb;
   assign csb           = spi_if.csb[0];
   assign tpm_csb       = spi_if.csb[1];
 
+  // Issue 10832 - bi-direction assignment issue in Xcelium
   `define CONNECT_SPI_IO(_INTF, _SD_IN, _SD_OUT, _SD_OUT_EN, _IDX) \
     wire sd_out_en_``_IDX`` = _SD_OUT_EN[_IDX]; \
     assign _INTF.sio[_IDX]  = (sd_out_en_``_IDX``) ? _SD_OUT[_IDX] : 1'bz; \
+    assign _SD_IN[_IDX] = _INTF.sio[_IDX];
+  `define CONNECT_SPI_IO_PASS(_INTF, _SD_IN, _SD_OUT, _SD_OUT_EN, _IDX) \
+    wire sd_out_en_pass_``_IDX`` = _SD_OUT_EN[_IDX]; \
+    assign _INTF.sio[_IDX]  = (sd_out_en_pass_``_IDX``) ? _SD_OUT[_IDX] : 1'bz; \
     assign _SD_IN[_IDX] = _INTF.sio[_IDX];
 
   `CONNECT_SPI_IO(spi_if, sd_in, sd_out, sd_out_en, 0)
@@ -104,13 +109,10 @@ module tb;
 
   assign spi_if_pass.sck = pass_out.sck;
   assign spi_if_pass.csb = pass_out.csb;
-  assign pass_in.s = pass_si_pulldown;
-  for (genvar i = 0; i < 4; i++) begin : gen_tri_state_passthrough
-    pullup (weak1) pd_in_i (pass_si_pulldown[i]);
-    pullup (weak1) pd_out_i (pass_so_pulldown[i]);
-    assign spi_if_pass.sio[i]  = (pass_out.s_en[i]) ? pass_out.s[i] : pass_so_pulldown[i];
-    assign pass_si_pulldown[i] = spi_if_pass.sio[i];
-  end
+  `CONNECT_SPI_IO_PASS(spi_if_pass, pass_in.s, pass_out.s, pass_out.s_en, 0)
+  `CONNECT_SPI_IO_PASS(spi_if_pass, pass_in.s, pass_out.s, pass_out.s_en, 1)
+  `CONNECT_SPI_IO_PASS(spi_if_pass, pass_in.s, pass_out.s, pass_out.s_en, 2)
+  `CONNECT_SPI_IO_PASS(spi_if_pass, pass_in.s, pass_out.s, pass_out.s_en, 3)
 
   assign interrupts[RxFifoFull]      = intr_rxf;
   assign interrupts[RxFifoGeLevel]   = intr_rxlvl;
